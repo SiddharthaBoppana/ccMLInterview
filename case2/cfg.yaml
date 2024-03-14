@@ -1,0 +1,5 @@
+datasetSize: 1200000
+maxModifications: 10
+maxLetterCount: 64
+batchSize: 32
+workers: 4
