@@ -1,5 +1,3 @@
-# Version 2.0
-
 import random
 import yaml
 import time
@@ -79,14 +77,11 @@ class ClassifierDataset(Dataset):
         self.src = self.augment_text(self.text, self.cfg)
         self.label = [random.randint(0, 1) for _ in range(self.cfg["datasetSize"])]
         # tokenize
-        self.tokenized_data = []
-        pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-        for i in tqdm(range(len(self.src)), desc="Tokenizing"):
-            self.tokenized_data.append(tokenize(
-                (self.src[i], self.label[i]), self.vocab, self.cfg
-            ))
-        pool.close()
-        pool.join()
+        with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
+            self.tokenized_data = list(tqdm(pool.imap(
+                self.tokenize_batch,
+                range(len(self.src)),
+            ), total=len(self.src), desc="Tokenizing"))
         te = time.time()
         time_taken = te - ts
         print(f"Time taken to process dataset: {time_taken} seconds")
@@ -97,6 +92,9 @@ class ClassifierDataset(Dataset):
             mG(text, cfg["maxModifications"])
             for _ in tqdm(range(cfg["datasetSize"]), desc="Augmenting")
         ]
+
+    def tokenize_batch(self, idx):
+        return tokenize((self.src[idx], self.label[idx]), self.vocab, self.cfg)
 
     def __len__(self):
         return len(self.src)
